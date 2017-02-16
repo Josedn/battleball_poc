@@ -1,0 +1,46 @@
+body
+{
+  margin: 0 auto;
+  background-color: #222222;
+  font-family: "Raleway";
+  color: #dddddd;
+}
+a
+{
+  color: #ffffff;
+  text-decoration: none;
+}
+header, footer
+{
+  text-align: center;
+}
+header
+{
+  margin-top: 0;
+  margin-bottom: 2em;
+  color: #000000;
+}
+header h1
+{
+  margin: 0;
+  background: #aaaaaa;
+  padding: 0.5em 1em;
+  font-weight: inherit;
+}
+footer
+{
+  margin-top: 2em;
+  font-size: 0.8em;
+
+}
+canvas
+{
+  background-color: #000000;
+}
+.main-wrapper
+{
+  width: 640px;
+  padding-left: 1em;
+  padding-right: 1em;
+  margin: 0 auto;
+}
