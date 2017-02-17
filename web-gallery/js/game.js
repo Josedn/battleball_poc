@@ -41,6 +41,7 @@ Game.load = function () {
 Game.init = function () {
     this.tileAtlas = Loader.getImage('tiles');
     this.players = [];
+    this.initIO();
 };
 
 Game._drawLayer = function (layer) {
@@ -74,7 +75,7 @@ Game.render = function () {
     }
     // draw map top layer
     this._drawLayer(1);
-    console.log("rendering...")
+    console.log("rendering...");
 };
 
 function getRandomInt(min, max) {
@@ -84,4 +85,12 @@ function getRandomInt(min, max) {
 Game.addPlayer = function() {
   this.players.push( {x: getRandomInt(0, 512), y: getRandomInt(0, 512), image: Loader.getImage('priest')} );
   this.players.push( {x: getRandomInt(0, 512), y: getRandomInt(0, 512), image: Loader.getImage('character')} );
+}
+
+Game.initIO = function() {
+  this.connection = new Connection(this);
+}
+
+Game.handleMessage = function(message) {
+
 }
