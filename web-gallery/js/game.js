@@ -87,10 +87,64 @@ Game.addPlayer = function() {
   this.players.push( {x: getRandomInt(0, 512), y: getRandomInt(0, 512), image: Loader.getImage('character')} );
 }
 
+/* Requests */
+
+Game.doLogin = function() {
+  this.connection.sendMessage("1|Jose");
+}
+
+Game.requestMap = function() {
+  this.connection.sendMessage("2|REQUESTMAP");
+  console.log("Requesting map...");
+}
+
+/* Request Handlers */
+
+Game.handleMessage = function(message) {
+  console.log("New message: '" + message + "'");
+  var tokens = message.split("|");
+  switch (tokens[0])
+  {
+    case "3":
+      Game.handleLoggedIn();
+      break;
+    case "4":
+      Game.handleMap();
+      break;
+  }
+}
+
+Game.handleMap = function() {
+  console.log("Received map");
+  
+}
+
+Game.handleLoggedIn = function() {
+  console.log("I'm logged!");
+
+  Game.requestMap();
+}
+
+/* IO */
+
 Game.initIO = function() {
   this.connection = new Connection(this);
 }
 
-Game.handleMessage = function(message) {
+Game.handleConnectionError = function() {
+  console.log("Connection fail");
+}
+
+Game.handleOpenConnection = function() {
+  console.log("Connection is open");
+  this.doLogin();
+}
+
+Game.handleClosedConnection = function() {
+  console.log("Connection is closed");
+}
+
+function onButtonPressed()
+{
 
 }

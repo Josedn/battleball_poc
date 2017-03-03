@@ -1,5 +1,6 @@
 Connection = function(messageHandler) {
   this.connected = false;
+  var self = this;
   var wsImpl = window.WebSocket || window.MozWebSocket;
   console.log("Connecting to server...");
   // create a new websocket and connect
@@ -13,18 +14,19 @@ Connection = function(messageHandler) {
   // when the connection is established, this method is called
   this.ws.onopen = function () {
     console.log("Connected to server! ");
-    this.connected = true;
+    self.connected = true;
     messageHandler.handleOpenConnection();
   };
   // when the connection is closed, this method is called
   this.ws.onclose = function () {
     console.log("Conection closed");
-    this.connected = false;
+    self.connected = false;
     messageHandler.handleClosedConnection();
   }
   //when Error
   this.ws.onerror = function () {
     console.log("Error!");
+    self.connected = false;
     messageHandler.handleConnectionError();
   }
 }
@@ -34,6 +36,9 @@ Connection.prototype.sendMessage = function(message)
   if (this.isConnected())
   {
     this.ws.send(message);
+  }
+  else {
+    console.log("Can't send, no connected");
   }
 }
 
