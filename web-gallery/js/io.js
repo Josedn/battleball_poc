@@ -8,24 +8,20 @@ Connection = function(messageHandler) {
 
   // when data is comming from the server, this metod is called
   this.ws.onmessage = function (evt) {
-      console.log("Received: " + evt.data);
       messageHandler.handleMessage(evt.data);
   };
   // when the connection is established, this method is called
   this.ws.onopen = function () {
-    console.log("Connected to server! ");
     self.connected = true;
     messageHandler.handleOpenConnection();
   };
   // when the connection is closed, this method is called
   this.ws.onclose = function () {
-    console.log("Conection closed");
     self.connected = false;
     messageHandler.handleClosedConnection();
   }
   //when Error
   this.ws.onerror = function () {
-    console.log("Error!");
     self.connected = false;
     messageHandler.handleConnectionError();
   }
@@ -38,7 +34,7 @@ Connection.prototype.sendMessage = function(message)
     this.ws.send(message);
   }
   else {
-    console.log("Can't send, no connected");
+    console.log("Can't send, socket is no connected");
   }
 }
 
