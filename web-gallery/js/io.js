@@ -50,3 +50,24 @@ function onButtonPressed()
 
 }
 */
+ServerMessage = function(data)
+{
+  this.popString = function() {
+    if (self.tokens.length > self.pointer)
+    {
+      return self.tokens[self.pointer++];
+    }
+    return null;
+  };
+
+  this.popInt = function() {
+    return parseInt(self.popString());
+  };
+
+  this.pointer = 0;
+  this.id = -1;
+  this.body = data;
+  this.tokens = data.split('|');
+  var self = this;
+  this.id = this.popInt();
+}

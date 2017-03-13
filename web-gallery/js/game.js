@@ -1,3 +1,34 @@
+/* PLAYER */
+function Player(id, x, y, image)
+{
+  this.id = id;
+  this.x = x;
+  this.y = y;
+  this.image = image;
+}
+
+/* CAMERA */
+function Camera(map, width, height) {
+    this.x = 0;
+    this.y = 0;
+    this.width = width;
+    this.height = height;
+    this.maxX = map.cols * map.tsize - width;
+    this.maxY = map.rows * map.tsize - height;
+}
+
+Camera.SPEED = 256; // pixels per second
+
+Camera.prototype.move = function (delta, dirx, diry) {
+    // move camera
+    this.x += dirx * Camera.SPEED * delta;
+    this.y += diry * Camera.SPEED * delta;
+    // clamp values
+    this.x = Math.max(0, Math.min(this.x, this.maxX));
+    this.y = Math.max(0, Math.min(this.y, this.maxY));
+};
+
+/* MAP */
 Map = function(cols, rows, tsize, layers)
 {
   this.cols = cols;
@@ -10,29 +41,6 @@ Map = function(cols, rows, tsize, layers)
       return self.layers[layer][row * self.cols + col];
   }
 }
-
-ServerMessage = function(data)
-{
-  this.popString = function() {
-    if (self.tokens.length > self.pointer)
-    {
-      return self.tokens[self.pointer++];
-    }
-    return null;
-  };
-
-  this.popInt = function() {
-    return parseInt(self.popString());
-  };
-
-  this.pointer = 0;
-  this.id = -1;
-  this.body = data;
-  this.tokens = data.split('|');
-  var self = this;
-  this.id = this.popInt();
-}
-
 Game.load = function () {
     return [
         Loader.loadImage('tiles', './web-gallery/assets/tiles.png'),
@@ -45,30 +53,71 @@ Game.init = function () {
     this.tileAtlas = Loader.getImage('tiles');
     this.players = [];
     this.initIO();
+    Keyboard.listenForEvents(
+        [Keyboard.LEFT, Keyboard.RIGHT, Keyboard.UP, Keyboard.DOWN]);
 };
 
-Game._drawLayer = function (layer) {
-  if (Game.map == undefined)
+Game._drawPlayer = function (player) {
+  if (Game.camera == undefined)
   {
     return;
   }
-    for (var c = 0; c < Game.map.cols; c++) {
-        for (var r = 0; r < Game.map.rows; r++) {
-            var tile = Game.map.getTile(layer, c, r);
-            if (tile !== 0) { // 0 => empty tile
-                this.ctx.drawImage(
-                    this.tileAtlas, // image
-                    (tile - 1) * Game.map.tsize, // source x
-                    0, // source y
-                    Game.map.tsize, // source width
-                    Game.map.tsize, // source height
-                    c * Game.map.tsize,  // target x
-                    r * Game.map.tsize, // target y
-                    Game.map.tsize, // target width
-                    Game.map.tsize // target height
-                );
-            }
-        }
+  var mapPositionX = (player.x * Game.map.tsize) - this.camera.x;
+  var mapPositionY = (player.y * Game.map.tsize) - this.camera.y;
+
+  console.log("VirtualX: " + mapPositionX);
+  console.log("VirtualY: " + mapPositionY);
+
+  this.ctx.drawImage(player.image, mapPositionX, mapPositionY);
+}
+
+Game._drawLayer = function (layer) {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+
+  var startCol = Math.floor(this.camera.x / Game.map.tsize);
+  var endCol = startCol + (this.camera.width / Game.map.tsize);
+  var startRow = Math.floor(this.camera.y / Game.map.tsize);
+  var endRow = startRow + (this.camera.height / Game.map.tsize);
+  var offsetX = -this.camera.x + startCol * Game.map.tsize;
+  var offsetY = -this.camera.y + startRow * Game.map.tsize;
+
+  for (var c = startCol; c <= endCol; c++) {
+      for (var r = startRow; r <= endRow; r++) {
+          var tile = Game.map.getTile(layer, c, r);
+          var x = (c - startCol) * Game.map.tsize + offsetX;
+          var y = (r - startRow) * Game.map.tsize + offsetY;
+          if (tile !== 0) { // 0 => empty tile
+              this.ctx.drawImage(
+                  this.tileAtlas, // image
+                  (tile - 1) * Game.map.tsize, // source x
+                  0, // source y
+                  Game.map.tsize, // source width
+                  Game.map.tsize, // source height
+                  Math.round(x),  // target x
+                  Math.round(y), // target y
+                  Game.map.tsize, // target width
+                  Game.map.tsize // target height
+              );
+          }
+      }
+  }
+};
+
+Game.update = function (delta) {
+    // handle camera movement with arrow keys
+    var dirx = 0;
+    var diry = 0;
+    if (Keyboard.isDown(Keyboard.LEFT)) { dirx = -1; }
+    if (Keyboard.isDown(Keyboard.RIGHT)) { dirx = 1; }
+    if (Keyboard.isDown(Keyboard.UP)) { diry = -1; }
+    if (Keyboard.isDown(Keyboard.DOWN)) { diry = 1; }
+
+    if (this.camera != undefined)
+    {
+      this.camera.move(delta, dirx, diry);
     }
 };
 
@@ -78,22 +127,15 @@ Game.render = function () {
     // draw game sprites
     for (i = 0; i < this.players.length; i++)
     {
-      this.ctx.drawImage(this.players[i].image, this.players[i].x, this.players[i].y)
+      this._drawPlayer(this.players[i]);
     }
     // draw Game.map top layer
     this._drawLayer(1);
-    console.log("rendering...");
 };
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-Game.addPlayer = function() {
-  this.players.push( {x: getRandomInt(0, 512), y: getRandomInt(0, 512), image: Loader.getImage('priest')} );
-  this.players.push( {x: getRandomInt(0, 512), y: getRandomInt(0, 512), image: Loader.getImage('character')} );
-}
-
 /* Requests */
 
 Game.doLogin = function() {
@@ -135,7 +177,7 @@ Game.handlePlayers = function(request) {
 
   for (i = 0; i < count; i++)
   {
-    this.players.push( {x: 64 * request.popInt(), y: 64 * request.popInt(), image: Loader.getImage('priest')} );
+    this.players.push( new Player(i, request.popInt(), request.popInt(),  Loader.getImage('priest')) );
   }
 
 }
@@ -164,7 +206,7 @@ Game.handleMap = function(request) {
   }
 
   Game.map = new Map(width, height, tsize, layers);
-
+  Game.camera = new Camera(Game.map, 640, 640);
   Game.requestPlayers();
 }
 
