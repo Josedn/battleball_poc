@@ -109,12 +109,27 @@ Game.tick = function (elapsed) {
 Game.init = function () {};
 Game.update = function (delta) {};
 Game.render = function () {};
+Game.onMouseMove = function (x, y) {};
 
 //
 // start up function
 //
 
 window.onload = function () {
-    var context = document.getElementById('game').getContext('2d');
+    var canvas = document.getElementById('game');
+    var context = canvas.getContext('2d');
     Game.run(context);
+
+    canvas.addEventListener('mousemove', function(evt) {
+      var rect = canvas.getBoundingClientRect();
+      var x = evt.clientX - rect.left;
+      var y = evt.clientY - rect.top;
+      Game.onMouseMove(x, y);
+    }, false);
+    canvas.addEventListener('click', function(evt) {
+      var rect = canvas.getBoundingClientRect();
+      var x = evt.clientX - rect.left;
+      var y = evt.clientY - rect.top;
+      Game.onMouseClick(x, y);
+    }, false);
 };

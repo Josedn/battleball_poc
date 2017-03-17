@@ -5,6 +5,46 @@ function Player(id, x, y, image)
   this.x = x;
   this.y = y;
   this.image = image;
+  this.targetX = x;
+  this.targetY = y;
+}
+
+Player.SPEED = 2; //squares per second
+
+Player.prototype.move = function (delta) {
+  if (this.targetX > this.x)
+  {
+    this.x += Player.SPEED * delta;
+    if (this.x > this.targetX)
+    {
+      this.x = this.targetX;
+    }
+  }
+  else if (this.targetX < this.x)
+  {
+    this.x += -Player.SPEED * delta;
+    if (this.x < this.targetX)
+    {
+      this.x = this.targetX;
+    }
+  }
+
+  if (this.targetY > this.y)
+  {
+    this.y += Player.SPEED * delta;
+    if (this.y > this.targetY)
+    {
+      this.y = this.targetY;
+    }
+  }
+  else if (this.targetY < this.y)
+  {
+    this.y -= Player.SPEED * delta;
+    if (this.y < this.targetY)
+    {
+      this.y = this.targetY;
+    }
+  }
 }
 
 /* CAMERA */
@@ -55,7 +95,71 @@ Game.init = function () {
     this.initIO();
     Keyboard.listenForEvents(
         [Keyboard.LEFT, Keyboard.RIGHT, Keyboard.UP, Keyboard.DOWN]);
+    this.selectedScreenX = 0;
+    this.selectedScreenY = 0;
 };
+
+Game.onMouseMove = function (x, y) {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+  this.selectedScreenX = x;
+  this.selectedScreenY = y;
+};
+
+Game.onMouseClick = function (x, y) {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+  Game.onMouseMove(x, y);
+  var absoluteX = Math.floor((this.camera.x + this.selectedScreenX )/ 64);
+  var absoluteY = Math.floor((this.camera.y + this.selectedScreenY )/ 64);
+  Game.requestMovement(absoluteX, absoluteY);
+}
+
+Game._drawSelectedTile = function() {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+
+  var absoluteX = Math.floor((this.camera.x + this.selectedScreenX) / 64);
+  var absoluteY = Math.floor((this.camera.y + this.selectedScreenY) / 64);
+  var mapPositionX = (absoluteX * Game.map.tsize) - this.camera.x;
+  var mapPositionY = (absoluteY * Game.map.tsize) - this.camera.y;
+
+  this.ctx.strokeStyle="#FF0000";
+  this.ctx.strokeRect(mapPositionX, mapPositionY, this.map.tsize, this.map.tsize);
+
+  /* ////Square
+
+  var ctx = Game.ctx;
+  var x = 10;
+  var y = 60;
+  var w = 220;
+  var h = 90;
+  var radius = 10;
+  var r = x + w;
+  var b = y + h;
+
+  this.ctx.beginPath();
+  this.ctx.strokeStyle="red";
+  this.ctx.lineWidth="1";
+  this.ctx.moveTo(x+radius, y);
+  //this.ctx.lineTo(x+radius/2, y-10);
+  this.ctx.lineTo(x+radius * 2, y);
+  this.ctx.lineTo(r-radius, y);
+  this.ctx.quadraticCurveTo(r, y, r, y+radius);
+  this.ctx.lineTo(r, y+h-radius);
+  this.ctx.quadraticCurveTo(r, b, r-radius, b);
+  this.ctx.lineTo(x+radius, b);
+  this.ctx.quadraticCurveTo(x, b, x, b-radius);
+  this.ctx.lineTo(x, y+radius);
+  this.ctx.quadraticCurveTo(x, y, x+radius, y);
+  this.ctx.stroke(); */
+}
 
 Game._drawPlayer = function (player) {
   if (Game.camera == undefined)
@@ -64,9 +168,6 @@ Game._drawPlayer = function (player) {
   }
   var mapPositionX = (player.x * Game.map.tsize) - this.camera.x;
   var mapPositionY = (player.y * Game.map.tsize) - this.camera.y;
-
-  console.log("VirtualX: " + mapPositionX);
-  console.log("VirtualY: " + mapPositionY);
 
   this.ctx.drawImage(player.image, mapPositionX, mapPositionY);
 }
@@ -119,6 +220,10 @@ Game.update = function (delta) {
     {
       this.camera.move(delta, dirx, diry);
     }
+    for (i = 0; i < this.players.length; i++)
+    {
+      this.players[i].move(delta);
+    }
 };
 
 Game.render = function () {
@@ -131,6 +236,9 @@ Game.render = function () {
     }
     // draw Game.map top layer
     this._drawLayer(1);
+
+    this._drawSelectedTile();
+    //this._drawGrid();
 };
 
 function getRandomInt(min, max) {
@@ -139,23 +247,22 @@ function getRandomInt(min, max) {
 /* Requests */
 
 Game.doLogin = function() {
-  this.connection.sendMessage("1|Jose");
+  this.connection.sendMessage("1|Jose|priest");
 }
 
 Game.requestMap = function() {
-  this.connection.sendMessage("2|REQUESTMAP");
+  this.connection.sendMessage("2");
   console.log("Requesting map...");
 }
 
-Game.requestPlayers = function() {
-  this.connection.sendMessage("5|REQUESTPLAYERS");
-  console.log("Requesting players...");
+Game.requestMovement = function(x, y) {
+  this.connection.sendMessage("7|" + x + "|" + y);
 }
-
 /* Request Handlers */
 
 Game.handleMessage = function(data) {
   var request = new ServerMessage(data);
+  console.log("MessageId: " + request.id);
   switch (request.id)
   {
     case 3:
@@ -167,19 +274,38 @@ Game.handleMessage = function(data) {
     case 6:
       Game.handlePlayers(request);
       break;
-
+    case 8:
+      Game.handleMovement(request);
+      break;
   }
+}
+
+Game.handleMovement = function(request) {
+  var userId = request.popInt();
+  var x = request.popInt();
+  var y = request.popInt();
+
+  for (i = 0; i < Game.players.length; i++)
+  {
+    if (Game.players[i].id == userId)
+    {
+      Game.players[i].targetX = x;
+      Game.players[i].targetY = y;
+    }
+  }
+
 }
 
 Game.handlePlayers = function(request) {
   var count = request.popInt();
   console.log("Players: " + count);
 
+  this.players = [];
+
   for (i = 0; i < count; i++)
   {
-    this.players.push( new Player(i, request.popInt(), request.popInt(),  Loader.getImage('priest')) );
+    this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(),  Loader.getImage(request.popString())) );
   }
-
 }
 
 Game.handleMap = function(request) {
@@ -207,7 +333,6 @@ Game.handleMap = function(request) {
 
   Game.map = new Map(width, height, tsize, layers);
   Game.camera = new Camera(Game.map, 640, 640);
-  Game.requestPlayers();
 }
 
 Game.handleLoggedIn = function() {
@@ -217,35 +342,6 @@ Game.handleLoggedIn = function() {
 }
 
 /* IO */
-
-function setMap() {
-  var layers = [[
-        3, 3, 3, 3, 3, 3, 3, 3, 1, 3,
-        3, 1, 1, 1, 1, 1, 1, 3, 1, 3,
-        3, 1, 1, 1, 1, 2, 1, 3, 1, 3,
-        3, 1, 1, 1, 1, 1, 1, 3, 1, 3,
-        3, 1, 1, 2, 1, 1, 1, 3, 1, 3,
-        3, 1, 1, 1, 2, 1, 1, 3, 1, 3,
-        3, 1, 1, 1, 2, 1, 1, 3, 1, 3,
-        3, 3, 3, 1, 2, 3, 3, 3, 1, 3,
-        3, 1, 1, 1, 2, 1, 1, 1, 1, 3,
-        3, 1, 1, 1, 2, 1, 1, 1, 1, 3
-    ], [
-        4, 3, 3, 3, 3, 3, 3, 4, 1, 4,
-        4, 0, 0, 0, 0, 0, 0, 4, 1, 4,
-        4, 0, 0, 0, 0, 0, 0, 4, 1, 4,
-        4, 0, 0, 5, 0, 0, 0, 4, 1, 4,
-        4, 0, 0, 0, 0, 0, 0, 4, 1, 4,
-        4, 0, 0, 0, 0, 0, 0, 4, 1, 4,
-        4, 4, 4, 0, 5, 4, 4, 4, 1, 4,
-        4, 3, 3, 0, 0, 3, 3, 3, 1, 4,
-        4, 1, 1, 0, 0, 0, 0, 0, 1, 4,
-        4, 0, 0, 0, 0, 0, 0, 0, 1, 4
-    ]];
-
-    Game.map = new Map(10, 10, 64, layers);
-}
-
 Game.initIO = function() {
   this.connection = new Connection(this);
 }
@@ -266,5 +362,10 @@ Game.handleClosedConnection = function() {
 
 function onButtonPressed()
 {
-  setMap();
+  /*for (i = 0; i < Game.players.length; i++)
+  {
+    Game.players[i].targetY -= 1;
+    Game.players[i].targetX -= 1;
+  }*/
+
 }
