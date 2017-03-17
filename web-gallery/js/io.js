@@ -31,7 +31,7 @@ Connection.prototype.sendMessage = function(message)
 {
   if (this.isConnected())
   {
-    this.ws.send(message);
+    this.ws.send(message.body);
   }
   else {
     console.log("Can't send, socket is no connected");
@@ -52,7 +52,7 @@ function onButtonPressed()
 */
 ServerMessage = function(data)
 {
-  this.popString = function() {
+  this.popToken = function() {
     if (self.tokens.length > self.pointer)
     {
       return self.tokens[self.pointer++];
@@ -61,8 +61,18 @@ ServerMessage = function(data)
   };
 
   this.popInt = function() {
-    return parseInt(self.popString());
+    return parseInt(self.popToken());
   };
+
+  this.popString = function() {
+    var tickets = self.popInt();
+    var totalString = self.popToken();
+    for (i = 0; i < tickets; i++)
+    {
+      totalString += '|' + self.popToken();
+    }
+    return totalString;
+  }
 
   this.pointer = 0;
   this.id = -1;
@@ -70,4 +80,31 @@ ServerMessage = function(data)
   this.tokens = data.split('|');
   var self = this;
   this.id = this.popInt();
+}
+
+ClientMessage = function(id) {
+  this.appendToken = function(token) {
+    self.body += '|' + token;
+  }
+
+  this.appendInt = function(i) {
+    self.appendToken(i + "");
+  }
+
+  this.appendString = function(str) {
+    var tickets = 0;
+    for (i = 0; i < str.length; i++)
+    {
+      if (str.charAt(i) == '|')
+      {
+        tickets++;
+      }
+    }
+
+    self.appendInt(tickets);
+    self.appendToken(str);
+  }
+
+  this.body = id + "";
+  var self = this;
 }

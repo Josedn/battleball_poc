@@ -247,22 +247,27 @@ function getRandomInt(min, max) {
 /* Requests */
 
 Game.doLogin = function() {
-  this.connection.sendMessage("1|Jose|priest");
+  var message = new ClientMessage(1);
+  message.appendString("Jose");
+  message.appendString("priest");
+  this.connection.sendMessage(message);
 }
 
 Game.requestMap = function() {
-  this.connection.sendMessage("2");
+  this.connection.sendMessage(new ClientMessage(2));
   console.log("Requesting map...");
 }
 
 Game.requestMovement = function(x, y) {
-  this.connection.sendMessage("7|" + x + "|" + y);
+  var message = new ClientMessage(7);
+  message.appendInt(x);
+  message.appendInt(y);
+  this.connection.sendMessage(message);
 }
 /* Request Handlers */
 
 Game.handleMessage = function(data) {
   var request = new ServerMessage(data);
-  console.log("MessageId: " + request.id);
   switch (request.id)
   {
     case 3:
