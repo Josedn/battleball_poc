@@ -91,9 +91,6 @@ Map.TILE_H = 32;
 Map.TILE_W = 64;
 Game.load = function () {
     return [
-        Loader.loadImage('tiles', './web-gallery/assets/tiles.png'),
-        Loader.loadImage('character', './web-gallery/assets/character.png'),
-        Loader.loadImage('priest', './web-gallery/assets/priest.png'),
         Loader.loadImage('room_tile', './web-gallery/assets/room_tile.png'),
         Loader.loadImage('empty_tile', './web-gallery/assets/empty_tile.png'),
         Loader.loadImage('shadow_tile', './web-gallery/assets/shadow_tile.png'),
@@ -302,7 +299,7 @@ Game.update = function (delta) {
     {
       this.camera.move(delta, dirx, diry);
     }
-    for (i = 0; i < this.players.length; i++)
+    for (var i = 0; i < this.players.length; i++)
     {
       this.players[i].move(delta);
     }
@@ -312,7 +309,7 @@ Game.render = function () {
     /*// draw Game.map background layer
     this._drawLayer(0);
     // draw game sprites
-    for (i = 0; i < this.players.length; i++)
+    for (var i = 0; i < this.players.length; i++)
     {
       this._drawPlayer(this.players[i]);
     }
@@ -321,11 +318,11 @@ Game.render = function () {
 
     this._drawSelectedTile();*/
     this._drawIsometricLayer();
-    //this._drawIsometricSelectedTile();
-    /*for (i = 0; i < this.players.length; i++)
+    this._drawIsometricSelectedTile();
+    for (var i = 0; i < this.players.length; i++)
     {
       this._drawIsometricPlayer(this.players[i]);
-    }*/
+    }
 };
 
 function getRandomInt(min, max) {
@@ -377,7 +374,7 @@ Game.handleMovement = function(request) {
   var x = request.popInt();
   var y = request.popInt();
 
-  for (i = 0; i < Game.players.length; i++)
+  for (var i = 0; i < Game.players.length; i++)
   {
     if (Game.players[i].id == userId)
     {
@@ -394,7 +391,7 @@ Game.handlePlayers = function(request) {
 
   this.players = [];
 
-  for (i = 0; i < count; i++)
+  for (var i = 0; i < count; i++)
   {
     this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(),  Loader.getImage(request.popString())) );
   }
@@ -413,7 +410,7 @@ Game.handleMap = function(request) {
   console.log("tsize: " + tsize);
   console.log("layerCount: " + layerCount);
 
-  for (i = 0; i < layerCount; i++)
+  for (var i = 0; i < layerCount; i++)
   {
     var layer = [];
     for (j = 0; j < width * height; j++)
@@ -454,7 +451,7 @@ Game.handleClosedConnection = function() {
 
 function onButtonPressed()
 {
-  /*for (i = 0; i < Game.players.length; i++)
+  /*for (var i = 0; i < Game.players.length; i++)
   {
     Game.players[i].targetY -= 1;
     Game.players[i].targetX -= 1;
