@@ -48,13 +48,15 @@ Player.prototype.move = function (delta) {
 }
 
 /* CAMERA */
-function Camera(map, width, height) {
-    this.x = 0;
-    this.y = 0;
-    this.width = width;
-    this.height = height;
-    this.maxX = map.cols * map.tsize - width;
-    this.maxY = map.rows * map.tsize - height;
+function Camera(map) {
+    this.width = Game.ctx.canvas.clientWidth;
+    this.height = Game.ctx.canvas.clientHeight;
+    this.x = 592/*(this.width - Map.TILE_W) / 2*/ ;
+    this.y = 116/*Map.TILE_H*/ ;
+    this.maxX = 1000;
+    this.maxY = 1000;
+    this.minX = -1000;
+    this.minY = -1000;
 }
 
 Camera.SPEED = 256; // pixels per second
@@ -64,8 +66,8 @@ Camera.prototype.move = function (delta, dirx, diry) {
     this.x += dirx * Camera.SPEED * delta;
     this.y += diry * Camera.SPEED * delta;
     // clamp values
-    this.x = Math.max(0, Math.min(this.x, this.maxX));
-    this.y = Math.max(0, Math.min(this.y, this.maxY));
+    this.x = Math.round(Math.max(this.minX, Math.min(this.x, this.maxX)));
+    this.y = Math.round(Math.max(this.minY, Math.min(this.y, this.maxY)));
 };
 
 /* MAP */
@@ -80,12 +82,24 @@ Map = function(cols, rows, tsize, layers)
   this.getTile = function (layer, col, row) {
       return self.layers[layer][row * self.cols + col];
   }
+
+  this.isValidTile = function(x, y) {
+    return x >= 0 && x < self.cols && y >= 0 && y < self.rows;
+  }
 }
+Map.TILE_H = 32;
+Map.TILE_W = 64;
 Game.load = function () {
     return [
         Loader.loadImage('tiles', './web-gallery/assets/tiles.png'),
         Loader.loadImage('character', './web-gallery/assets/character.png'),
-        Loader.loadImage('priest', './web-gallery/assets/priest.png')
+        Loader.loadImage('priest', './web-gallery/assets/priest.png'),
+        Loader.loadImage('room_tile', './web-gallery/assets/room_tile.png'),
+        Loader.loadImage('empty_tile', './web-gallery/assets/empty_tile.png'),
+        Loader.loadImage('shadow_tile', './web-gallery/assets/shadow_tile.png'),
+        Loader.loadImage('selected_tile', './web-gallery/assets/selected_tile.png'),
+        Loader.loadImage('jose', './web-gallery/assets/jose.png'),
+        Loader.loadImage('press', './web-gallery/assets/press.png')
     ];
 };
 
@@ -97,6 +111,11 @@ Game.init = function () {
         [Keyboard.LEFT, Keyboard.RIGHT, Keyboard.UP, Keyboard.DOWN]);
     this.selectedScreenX = 0;
     this.selectedScreenY = 0;
+
+    this.roomTile = Loader.getImage('room_tile');
+    this.emptyTile = Loader.getImage('empty_tile');
+    this.selectedTile = Loader.getImage('selected_tile');
+    this.shadowTile = Loader.getImage('shadow_tile');
 };
 
 Game.onMouseMove = function (x, y) {
@@ -114,9 +133,72 @@ Game.onMouseClick = function (x, y) {
     return;
   }
   Game.onMouseMove(x, y);
-  var absoluteX = Math.floor((this.camera.x + this.selectedScreenX )/ 64);
-  var absoluteY = Math.floor((this.camera.y + this.selectedScreenY )/ 64);
-  Game.requestMovement(absoluteX, absoluteY);
+  var mapX = this.camera.x;
+  var mapY = this.camera.y;
+
+  var xminusy = (this.selectedScreenX - 32 - mapX) / Map.TILE_H;
+  var xplusy =  (this.selectedScreenY - mapY) * 2 / Map.TILE_H;
+
+  var x = Math.floor((xminusy + xplusy) / 2);
+  var y = Math.floor((xplusy - xminusy) / 2);
+  if (this.map.isValidTile(x, y))
+  {
+    Game.requestMovement(x, y);
+  }
+}
+
+Game._drawIsometricPlayer = function (player) {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+  var mapX = this.camera.x;
+  var mapY = this.camera.y;
+
+  var mapPositionX = (player.x - player.y) * Map.TILE_H + mapX;
+  var mapPositionY = (player.x + player.y) * Map.TILE_H / 2 + mapY;
+
+  this.ctx.drawImage(this.shadowTile, mapPositionX, mapPositionY);
+  this.ctx.drawImage(player.image, mapPositionX, mapPositionY - 85);
+}
+Game._drawIsometricLayer = function (layer) {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+
+  // mapX and mapY are offsets to make sure we can position the map as we want.
+  var mapX = this.camera.x;
+  var mapY = this.camera.y;
+
+  // loop through our map and draw out the image represented by the number.
+  for (var i = 0; i < this.map.cols; i++) {
+    for (var j = 0; j < this.map.rows; j++) {
+      // Draw the represented image number, at the desired X & Y coordinates followed by the graphic width and height.
+      this.ctx.drawImage(this.roomTile, (i - j) * Map.TILE_H + mapX, (i + j) * Map.TILE_H / 2 + mapY);
+    }
+  }
+}
+Game._drawIsometricSelectedTile = function() {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+
+  var mapX = this.camera.x;
+  var mapY = this.camera.y;
+
+  var xminusy = (this.selectedScreenX - 32 - mapX) / Map.TILE_H;
+  var xplusy =  (this.selectedScreenY - mapY) * 2 / Map.TILE_H;
+
+  var x = Math.floor((xminusy + xplusy) / 2);
+  var y = Math.floor((xplusy - xminusy) / 2);
+
+  if (this.map.isValidTile(x, y))
+  {
+    this.ctx.drawImage(this.selectedTile, (x - y) * Map.TILE_H + mapX, (x + y) * Map.TILE_H / 2 + mapY - 3);
+  }
+
 }
 
 Game._drawSelectedTile = function() {
@@ -227,7 +309,7 @@ Game.update = function (delta) {
 };
 
 Game.render = function () {
-    // draw Game.map background layer
+    /*// draw Game.map background layer
     this._drawLayer(0);
     // draw game sprites
     for (i = 0; i < this.players.length; i++)
@@ -237,8 +319,13 @@ Game.render = function () {
     // draw Game.map top layer
     this._drawLayer(1);
 
-    this._drawSelectedTile();
-    //this._drawGrid();
+    this._drawSelectedTile();*/
+    this._drawIsometricLayer();
+    //this._drawIsometricSelectedTile();
+    /*for (i = 0; i < this.players.length; i++)
+    {
+      this._drawIsometricPlayer(this.players[i]);
+    }*/
 };
 
 function getRandomInt(min, max) {
@@ -249,7 +336,7 @@ function getRandomInt(min, max) {
 Game.doLogin = function() {
   var message = new ClientMessage(1);
   message.appendString("Jose");
-  message.appendString("priest");
+  message.appendString("press");
   this.connection.sendMessage(message);
 }
 
@@ -337,7 +424,7 @@ Game.handleMap = function(request) {
   }
 
   Game.map = new Map(width, height, tsize, layers);
-  Game.camera = new Camera(Game.map, 640, 640);
+  Game.camera = new Camera(Game.map);
 }
 
 Game.handleLoggedIn = function() {
