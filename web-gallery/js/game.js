@@ -1,11 +1,54 @@
+function Chat(from, text, x)
+{
+  this.from = from;
+  this.text = text;
+  this.x = x;
+  this.y = 170;
+  this.targetX = x;
+  this.targetY = y;
+  this.stamp = new Date().getTime();
+}
+Chat.SPEED = 32;
+Chat.prototype.move = function(delta){
+  if (this.targetY > this.y)
+  {
+    this.y += Chat.SPEED * delta;
+    if (this.y > this.targetY)
+    {
+      this.y = this.targetY;
+    }
+  }
+  else if (this.targetY < this.y)
+  {
+    this.y -= Chat.SPEED * delta;
+    if (this.y < this.targetY)
+    {
+      this.y = this.targetY;
+    }
+  }
+
+  if (this.targetY < -10)
+  {
+    Game.chats.splice(0, 1);
+  }
+}
+
+Game.moveChats = function()
+{
+  for (var i = 0; i < Game.chats.length; i++)
+  {
+    Game.chats[i].targetY -= 20;
+  }
+}
+
 /* PLAYER */
-function Player(id, x, y, rot, image)
+function Player(id, x, y, rot, look)
 {
   this.id = id;
   this.x = x;
   this.y = y;
   this.rot = rot;
-  this.image = image;
+  this.look = look;
   this.targetX = x;
   this.targetY = y;
 }
@@ -72,20 +115,22 @@ Camera.prototype.move = function (delta, dirx, diry) {
 };
 
 /* MAP */
-Map = function(cols, rows, tsize, layers)
+Map = function(cols, rows, layer)
 {
   this.cols = cols;
   this.rows = rows;
-  this.tsize = tsize;
-  this.layers = layers;
+  this.layer = layer;
 
   var self = this;
-  this.getTile = function (layer, col, row) {
-      return self.layers[layer][row * self.cols + col];
+  this.getTile = function (col, row) {
+      return self.layer[col * self.rows + row];
   }
 
   this.isValidTile = function(x, y) {
-    return x >= 0 && x < self.cols && y >= 0 && y < self.rows;
+    if (x >= 0 && x < self.cols && y >= 0 && y < self.rows)
+    {
+      return self.getTile(x, y) == 1;
+    }
   }
 }
 Map.TILE_H = 32;
@@ -96,6 +141,13 @@ Game.load = function () {
         Loader.loadImage('empty_tile', './web-gallery/assets/empty_tile.png'),
         Loader.loadImage('shadow_tile', './web-gallery/assets/shadow_tile.png'),
         Loader.loadImage('selected_tile', './web-gallery/assets/selected_tile.png'),
+        Loader.loadImage('room_door', './web-gallery/assets/room_door.png'),
+        Loader.loadImage('room_wall_l', './web-gallery/assets/room_wall_door.png'),
+        Loader.loadImage('room_wall_l_first', './web-gallery/assets/room_wall_first.png'),
+        Loader.loadImage('room_wall_r', './web-gallery/assets/room_wall_r.png'),
+        Loader.loadImage('chat1', './web-gallery/assets/chat1_alt.png'),
+        Loader.loadImage('chat2', './web-gallery/assets/chat2.png'),
+        Loader.loadImage('chat3', './web-gallery/assets/chat3.png'),
         Loader.loadImage('rf', './web-gallery/assets/jose/rf.png'),
         Loader.loadImage('lf', './web-gallery/assets/jose/lf.png'),
         Loader.loadImage('rb', './web-gallery/assets/jose/rb.png'),
@@ -122,23 +174,41 @@ Game.load = function () {
 Game.init = function () {
     this.tileAtlas = Loader.getImage('tiles');
     this.players = [];
+    this.chats = [];
     this.initIO();
     Keyboard.listenForEvents(
         [Keyboard.LEFT, Keyboard.RIGHT, Keyboard.UP, Keyboard.DOWN]);
+
+    setInterval(this.moveChats, 3000);
     this.selectedScreenX = 0;
     this.selectedScreenY = 0;
+    this.lastDragX = 0;
+    this.lastDragY = 0;
 
     this.roomTile = Loader.getImage('room_tile');
     this.emptyTile = Loader.getImage('empty_tile');
     this.selectedTile = Loader.getImage('selected_tile');
     this.shadowTile = Loader.getImage('shadow_tile');
+    this.roomDoor = Loader.getImage('room_door');
+    this.roomWallL = Loader.getImage('room_wall_l');
+    this.roomWallR = Loader.getImage('room_wall_r');
 };
 
-Game.onMouseMove = function (x, y) {
+Game.onMouseMove = function (x, y, isDrag) {
   if (Game.camera == undefined)
   {
     return;
   }
+  if (isDrag)
+  {
+    var diffX = this.selectedScreenX - x;
+    var diffY = this.selectedScreenY - y;
+    this.lastDragX = this.selectedScreenX;
+    this.lastDragY = this.selectedScreenY;
+    this.camera.x -= diffX;
+    this.camera.y -= diffY;
+  }
+
   this.selectedScreenX = x;
   this.selectedScreenY = y;
 };
@@ -148,7 +218,7 @@ Game.onMouseClick = function (x, y) {
   {
     return;
   }
-  Game.onMouseMove(x, y);
+  Game.onMouseMove(x, y, false);
   var mapX = this.camera.x;
   var mapY = this.camera.y;
 
@@ -208,8 +278,7 @@ Game._drawIsometricPlayer = function (player) {
   {
     image += ('w4');
   }
-
-  if (diffY > 0 && diffY < 0.25)
+  else if (diffY > 0 && diffY < 0.25)
   {
     image += ('w1');
   }
@@ -229,7 +298,33 @@ Game._drawIsometricPlayer = function (player) {
   this.ctx.drawImage(this.shadowTile, mapPositionX, mapPositionY);
   this.ctx.drawImage(Loader.getImage(image), mapPositionX, mapPositionY - 85);
 }
-Game._drawIsometricLayer = function (layer) {
+Game._drawIsometricWalls = function () {
+  if (Game.camera == undefined)
+  {
+    return;
+  }
+
+  var mapX = this.camera.x;
+  var mapY = this.camera.y;
+
+  for (var i = 1; i < this.map.rows; i++) {
+    if (i == 4)
+    {
+      this.ctx.drawImage(this.roomDoor, (1 - i) * Map.TILE_H + mapX - 8, (i + 1) * Map.TILE_H / 2 + mapY - 119);
+    }
+    else {
+      this.ctx.drawImage(this.roomWallL, (1 - i) * Map.TILE_H + mapX - 8, (i + 1) * Map.TILE_H / 2 + mapY - 119);
+    }
+  }
+
+  this.ctx.drawImage(Loader.getImage("room_wall_l_first"), (1 - (this.map.rows - 1)) * Map.TILE_H + mapX - 8, (1 + this.map.rows - 1) * Map.TILE_H / 2 + mapY - 119);
+
+  for (var i = 1; i < this.map.cols; i++) {
+    // Draw the represented image number, at the desired X & Y coordinates followed by the graphic width and height.
+    this.ctx.drawImage(this.roomWallR, (i - 1) * Map.TILE_H + mapX + 32, (i + 1) * Map.TILE_H / 2 + mapY - 119);
+  }
+}
+Game._drawIsometricLayer = function () {
   if (Game.camera == undefined)
   {
     return;
@@ -242,8 +337,12 @@ Game._drawIsometricLayer = function (layer) {
   // loop through our map and draw out the image represented by the number.
   for (var i = 0; i < this.map.cols; i++) {
     for (var j = 0; j < this.map.rows; j++) {
+      var tile = Game.map.getTile(i, j);
       // Draw the represented image number, at the desired X & Y coordinates followed by the graphic width and height.
-      this.ctx.drawImage(this.roomTile, (i - j) * Map.TILE_H + mapX, (i + j) * Map.TILE_H / 2 + mapY);
+      if (tile == 1)
+      {
+        this.ctx.drawImage(this.roomTile, (i - j) * Map.TILE_H + mapX, (i + j) * Map.TILE_H / 2 + mapY);
+      }
     }
   }
 }
@@ -268,25 +367,81 @@ Game._drawIsometricSelectedTile = function() {
   }
 
 }
-
-Game._drawSelectedTile = function() {
-  if (Game.camera == undefined)
+Game._drawChats = function() {
+  for (var i = 0; i < this.chats.length; i++)
   {
-    return;
+    var currentChat = this.chats[i];
+
+    var fromWidth = this.ctx.measureText(currentChat.from + ": ").width;
+    var textWidth = this.ctx.measureText(currentChat.text).width;
+
+    var currentWidth = 0;
+    var leftChat = Loader.getImage('chat1');
+    var midChat = Loader.getImage('chat2');
+    var rightChat = Loader.getImage('chat3');
+
+    this.ctx.drawImage(leftChat, currentChat.x, currentChat.y);
+    while (currentWidth < (textWidth + fromWidth)) {
+      this.ctx.drawImage(midChat, currentChat.x + leftChat.width + currentWidth, currentChat.y);
+      currentWidth += 10;
+    }
+
+    this.ctx.drawImage(rightChat, currentChat.x + leftChat.width + currentWidth, currentChat.y);
+    this.ctx.font = "bold 15px Ubuntu"
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillStyle = "black";
+    this.ctx.fillText(currentChat.from + ": ", currentChat.x + leftChat.width, currentChat.y + 12);
+    this.ctx.font = "15px Ubuntu"
+    this.ctx.fillText(currentChat.text, currentChat.x + leftChat.width + fromWidth, currentChat.y + 12);
   }
+}
+Game._drawSquare = function() {
+  this.ctx.drawImage(Loader.getImage('chat_dialog'), 370, 60);
 
-  var absoluteX = Math.floor((this.camera.x + this.selectedScreenX) / 64);
-  var absoluteY = Math.floor((this.camera.y + this.selectedScreenY) / 64);
-  var mapPositionX = (absoluteX * Game.map.tsize) - this.camera.x;
-  var mapPositionY = (absoluteY * Game.map.tsize) - this.camera.y;
+  /*
+  this.ctx.fillStyle = "white";
 
-  this.ctx.strokeStyle="#FF0000";
-  this.ctx.strokeRect(mapPositionX, mapPositionY, this.map.tsize, this.map.tsize);
+  var x = 370;
+  var y = 60;
+  var w = 220;
+  var h = 23;
+  var radius = 10;
+  var r = x + w;
+  var b = y + h;
 
-  /* ////Square
+  this.ctx.beginPath();
+  this.ctx.strokeStyle="#aa0000";
+  this.ctx.lineWidth="2";
+  this.ctx.moveTo(x+radius, y);
+  //this.ctx.lineTo(x+radius/2, y-10);
+  this.ctx.lineTo(x+radius * 2, y);
+  this.ctx.lineTo(r-radius, y);
+  this.ctx.quadraticCurveTo(r, y, r, y+radius);
+  this.ctx.lineTo(r, y+h-radius);
+  this.ctx.quadraticCurveTo(r, b, r-radius, b);
+  this.ctx.lineTo(x+radius, b);
+  this.ctx.quadraticCurveTo(x, b, x, b-radius);
+  this.ctx.lineTo(x, y+radius);
+  this.ctx.quadraticCurveTo(x, y, x+radius, y);
+  this.ctx.fill();
+  this.ctx.stroke();
 
-  var ctx = Game.ctx;
-  var x = 10;
+  this.ctx.strokeStyle="#aa0000";
+  this.ctx.lineWidth = "1";
+  /*this.ctx.fillRect(x, y, w, h);
+  this.ctx.strokeRect(x, y, w, h);
+
+  this.ctx.font = "15px Ubuntu"
+  this.ctx.textBaseline = "middle";
+  this.ctx.fillStyle = "black";
+  var text = "Jose: Hi ther";
+
+  var textX = x + w / 2 - this.ctx.measureText(text).width / 2;
+  var textY = y + h / 2;
+  this.ctx.fillText(text, textX, textY);
+
+*/
+  /*var x = 10;
   var y = 60;
   var w = 220;
   var h = 90;
@@ -295,7 +450,7 @@ Game._drawSelectedTile = function() {
   var b = y + h;
 
   this.ctx.beginPath();
-  this.ctx.strokeStyle="red";
+  this.ctx.strokeStyle="white";
   this.ctx.lineWidth="1";
   this.ctx.moveTo(x+radius, y);
   //this.ctx.lineTo(x+radius/2, y-10);
@@ -308,55 +463,8 @@ Game._drawSelectedTile = function() {
   this.ctx.quadraticCurveTo(x, b, x, b-radius);
   this.ctx.lineTo(x, y+radius);
   this.ctx.quadraticCurveTo(x, y, x+radius, y);
-  this.ctx.stroke(); */
+  this.ctx.stroke();*/
 }
-
-Game._drawPlayer = function (player) {
-  if (Game.camera == undefined)
-  {
-    return;
-  }
-  var mapPositionX = (player.x * Game.map.tsize) - this.camera.x;
-  var mapPositionY = (player.y * Game.map.tsize) - this.camera.y;
-
-  this.ctx.drawImage(player.image, mapPositionX, mapPositionY);
-}
-
-Game._drawLayer = function (layer) {
-  if (Game.camera == undefined)
-  {
-    return;
-  }
-
-  var startCol = Math.floor(this.camera.x / Game.map.tsize);
-  var endCol = startCol + (this.camera.width / Game.map.tsize);
-  var startRow = Math.floor(this.camera.y / Game.map.tsize);
-  var endRow = startRow + (this.camera.height / Game.map.tsize);
-  var offsetX = -this.camera.x + startCol * Game.map.tsize;
-  var offsetY = -this.camera.y + startRow * Game.map.tsize;
-
-  for (var c = startCol; c <= endCol; c++) {
-      for (var r = startRow; r <= endRow; r++) {
-          var tile = Game.map.getTile(layer, c, r);
-          var x = (c - startCol) * Game.map.tsize + offsetX;
-          var y = (r - startRow) * Game.map.tsize + offsetY;
-          if (tile !== 0) { // 0 => empty tile
-              this.ctx.drawImage(
-                  this.tileAtlas, // image
-                  (tile - 1) * Game.map.tsize, // source x
-                  0, // source y
-                  Game.map.tsize, // source width
-                  Game.map.tsize, // source height
-                  Math.round(x),  // target x
-                  Math.round(y), // target y
-                  Game.map.tsize, // target width
-                  Game.map.tsize // target height
-              );
-          }
-      }
-  }
-};
-
 Game.update = function (delta) {
     // handle camera movement with arrow keys
     var dirx = 0;
@@ -374,15 +482,22 @@ Game.update = function (delta) {
     {
       this.players[i].move(delta);
     }
+    for (var i = 0; i < this.chats.length; i++)
+    {
+      this.chats[i].move(delta);
+    }
 };
 
 Game.render = function () {
-    this._drawIsometricLayer();
-    this._drawIsometricSelectedTile();
-    for (var i = 0; i < this.players.length; i++)
-    {
-      this._drawIsometricPlayer(this.players[i]);
-    }
+  this._drawIsometricWalls();
+  this._drawIsometricLayer();
+  this._drawIsometricSelectedTile();
+  for (var i = 0; i < this.players.length; i++)
+  {
+    this._drawIsometricPlayer(this.players[i]);
+  }
+
+  this._drawChats();
 };
 
 function getRandomInt(min, max) {
@@ -394,6 +509,12 @@ Game.doLogin = function() {
   var message = new ClientMessage(1);
   message.appendString("Jose");
   message.appendString("jose");
+  this.connection.sendMessage(message);
+}
+
+Game.requestChat = function(chat) {
+  var message = new ClientMessage(9);
+  message.appendString(chat);
   this.connection.sendMessage(message);
 }
 
@@ -425,6 +546,9 @@ Game.handleMessage = function(data) {
       break;
     case 8:
       Game.handleMovement(request);
+      break;
+    case 10:
+      Game.handleChat(request);
       break;
   }
 }
@@ -463,27 +587,30 @@ Game.handleMap = function(request) {
   console.log("Received map");
   var width = request.popInt();
   var height = request.popInt();
-  var tsize = request.popInt();
-  var layerCount = request.popInt();
-  var layers = [];
 
-  console.log("Width: " + width);
-  console.log("height: " + height);
-  console.log("tsize: " + tsize);
-  console.log("layerCount: " + layerCount);
-
-  for (var i = 0; i < layerCount; i++)
+  var layer = [];
+  for (var j = 0; j < width * height; j++)
   {
-    var layer = [];
-    for (var j = 0; j < width * height; j++)
-    {
-      layer.push(request.popInt());
-    }
-    layers.push(layer);
+    layer.push(request.popInt());
   }
 
-  Game.map = new Map(width, height, tsize, layers);
+  Game.map = new Map(width, height, layer);
   Game.camera = new Camera(Game.map);
+}
+Game.handleChat = function(request) {
+  var fromId = request.popInt();
+  var from = request.popString();
+  var text = request.popString();
+
+  for (var i = 0; i < Game.players.length; i++)
+  {
+    if (Game.players[i].id == fromId)
+    {
+      var mapX = this.camera.x;
+      var mapPositionX = (Game.players[i].x - Game.players[i].y) * Map.TILE_H + mapX;
+      Game.chats.push(new Chat(from, text, mapPositionX);
+    }
+  }
 }
 
 Game.handleLoggedIn = function() {
@@ -513,10 +640,5 @@ Game.handleClosedConnection = function() {
 
 function onButtonPressed()
 {
-  /*for (var i = 0; i < Game.players.length; i++)
-  {
-    Game.players[i].targetY -= 1;
-    Game.players[i].targetX -= 1;
-  }*/
 
 }

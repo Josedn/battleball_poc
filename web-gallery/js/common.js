@@ -120,16 +120,25 @@ window.onload = function () {
     var context = canvas.getContext('2d');
     Game.run(context);
 
+    var isDrag = false;
     canvas.addEventListener('mousemove', function(evt) {
       var rect = canvas.getBoundingClientRect();
       var x = evt.clientX - rect.left;
       var y = evt.clientY - rect.top;
-      Game.onMouseMove(x, y);
+      Game.onMouseMove(x, y, isDrag);
     }, false);
     canvas.addEventListener('click', function(evt) {
       var rect = canvas.getBoundingClientRect();
       var x = evt.clientX - rect.left;
       var y = evt.clientY - rect.top;
       Game.onMouseClick(x, y);
+    }, false);
+
+    canvas.addEventListener('mousedown', function(evt) {
+      isDrag = true;
+    }, false);
+
+    canvas.addEventListener('mouseup', function(evt) {
+      isDrag = false;
     }, false);
 };
