@@ -141,4 +141,8 @@ window.onload = function () {
     canvas.addEventListener('mouseup', function(evt) {
       isDrag = false;
     }, false);
+
+    window.addEventListener('resize', function(evt) {
+      Game.onResize();
+    }, false);
 };

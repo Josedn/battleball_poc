@@ -2,7 +2,7 @@ body
 {
   margin: 0 auto;
   background-color: #222222;
-  font-family: "Raleway";
+  font-family: "Ubuntu";
   color: #dddddd;
 }
 a
@@ -16,11 +16,13 @@ header, footer
 }
 header
 {
+  position: absolute;
+  width: 100%;
   margin-top: 0;
   margin-bottom: 2em;
   color: #000000;
 }
-header h1
+header h2
 {
   margin: 0;
   background: #aaaaaa;
@@ -29,18 +31,49 @@ header h1
 }
 footer
 {
-  margin-top: 2em;
-  font-size: 0.8em;
-
+  width: 100%;
+  background: #222222;
+  position: absolute;
+  bottom: 0;
 }
 canvas
 {
+  position: absolute;
+  width: 100%;
+  position: absolute;
+  width: 100%;
+  height: 100%;
   background-color: #000000;
 }
 .main-wrapper
 {
-  width: 1000px;
-  padding-left: 1em;
-  padding-right: 1em;
+  background-color: red;
+  width: 100%;
   margin: 0 auto;
+}
+.chat_container
+{
+  position: absolute;
+  bottom: 40px;
+  width: 100%;
+  text-align: center;
+}
+input
+{
+  color: #ffffff;
+  font-family: inherit;
+  box-sizing: border-box;
+	background-color: #5b5b5b;
+	width: 250px;
+	height: 35px;
+	padding: 0 8px 0 8px;
+	border: 1px solid #efefef;
+	border-radius: 5px;
+}
+input[type="submit"]
+{
+  width: 80px;
+	color: #ffffff;
+	background-color: #27ae60;
+	border-color: #2d6c48;
 }

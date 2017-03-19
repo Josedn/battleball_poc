@@ -15,18 +15,21 @@
   <link href="https://fonts.googleapis.com/css?family=Poiret+One|Raleway:200|Roboto" rel="stylesheet">
 </head>
 <body>
+  <canvas id="game"></canvas>
+
   <header>
-    <h1>Battleball client</h1>
+    <h2>Battleball client</h2>
   </header>
 
-  <div class="main-wrapper">
-    <canvas id="game" width="1000" height="640"></canvas>
-  </div>
+  <section class="chat_container">
+    <form onsubmit="onChatSubmit(); return false;" autocomplete="off">
+      <input type="text" placeholder="Say something" id="input_chat">
+      <input type="submit" value="Say">
+    </form>
+  </section>
 
   <footer>
-    battleball alpha
-    <br>
-    <a href="#" onclick="onButtonPressed()">do something</a>
+
   </footer>
 
 </body>

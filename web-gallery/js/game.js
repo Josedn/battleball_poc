@@ -5,7 +5,7 @@ function Chat(from, text, x)
   this.x = x;
   this.y = 170;
   this.targetX = x;
-  this.targetY = y;
+  this.targetY = this.y;
   this.stamp = new Date().getTime();
 }
 Chat.SPEED = 32;
@@ -93,14 +93,14 @@ Player.prototype.move = function (delta) {
 
 /* CAMERA */
 function Camera(map) {
-    this.width = Game.ctx.canvas.clientWidth;
-    this.height = Game.ctx.canvas.clientHeight;
-    this.x = 592/*(this.width - Map.TILE_W) / 2*/ ;
-    this.y = 116/*Map.TILE_H*/ ;
-    this.maxX = 1000;
-    this.maxY = 1000;
-    this.minX = -1000;
-    this.minY = -1000;
+  this.reset();
+}
+
+Camera.prototype.reset = function() {
+  this.width = Game.ctx.canvas.clientWidth;
+  this.height = Game.ctx.canvas.clientHeight;
+  this.x = (this.width - Map.TILE_W) / 2;
+  this.y = (this.height - Map.TILE_H) / 4;
 }
 
 Camera.SPEED = 256; // pixels per second
@@ -110,8 +110,10 @@ Camera.prototype.move = function (delta, dirx, diry) {
     this.x += dirx * Camera.SPEED * delta;
     this.y += diry * Camera.SPEED * delta;
     // clamp values
-    this.x = Math.round(Math.max(this.minX, Math.min(this.x, this.maxX)));
-    this.y = Math.round(Math.max(this.minY, Math.min(this.y, this.maxY)));
+    //this.x = Math.round(Math.max(this.minX, Math.min(this.x, this.maxX)));
+    //this.y = Math.round(Math.max(this.minY, Math.min(this.y, this.maxY)));
+    this.x = Math.round(this.x);
+    this.y = Math.round(this.y);
 };
 
 /* MAP */
@@ -145,7 +147,7 @@ Game.load = function () {
         Loader.loadImage('room_wall_l', './web-gallery/assets/room_wall_door.png'),
         Loader.loadImage('room_wall_l_first', './web-gallery/assets/room_wall_first.png'),
         Loader.loadImage('room_wall_r', './web-gallery/assets/room_wall_r.png'),
-        Loader.loadImage('chat1', './web-gallery/assets/chat1_alt.png'),
+        Loader.loadImage('chat1', './web-gallery/assets/chat1.png'),
         Loader.loadImage('chat2', './web-gallery/assets/chat2.png'),
         Loader.loadImage('chat3', './web-gallery/assets/chat3.png'),
         Loader.loadImage('rf', './web-gallery/assets/jose/rf.png'),
@@ -179,11 +181,11 @@ Game.init = function () {
     Keyboard.listenForEvents(
         [Keyboard.LEFT, Keyboard.RIGHT, Keyboard.UP, Keyboard.DOWN]);
 
+    this.onResize();
+
     setInterval(this.moveChats, 3000);
     this.selectedScreenX = 0;
     this.selectedScreenY = 0;
-    this.lastDragX = 0;
-    this.lastDragY = 0;
 
     this.roomTile = Loader.getImage('room_tile');
     this.emptyTile = Loader.getImage('empty_tile');
@@ -203,8 +205,6 @@ Game.onMouseMove = function (x, y, isDrag) {
   {
     var diffX = this.selectedScreenX - x;
     var diffY = this.selectedScreenY - y;
-    this.lastDragX = this.selectedScreenX;
-    this.lastDragY = this.selectedScreenY;
     this.camera.x -= diffX;
     this.camera.y -= diffY;
   }
@@ -395,76 +395,7 @@ Game._drawChats = function() {
     this.ctx.fillText(currentChat.text, currentChat.x + leftChat.width + fromWidth, currentChat.y + 12);
   }
 }
-Game._drawSquare = function() {
-  this.ctx.drawImage(Loader.getImage('chat_dialog'), 370, 60);
 
-  /*
-  this.ctx.fillStyle = "white";
-
-  var x = 370;
-  var y = 60;
-  var w = 220;
-  var h = 23;
-  var radius = 10;
-  var r = x + w;
-  var b = y + h;
-
-  this.ctx.beginPath();
-  this.ctx.strokeStyle="#aa0000";
-  this.ctx.lineWidth="2";
-  this.ctx.moveTo(x+radius, y);
-  //this.ctx.lineTo(x+radius/2, y-10);
-  this.ctx.lineTo(x+radius * 2, y);
-  this.ctx.lineTo(r-radius, y);
-  this.ctx.quadraticCurveTo(r, y, r, y+radius);
-  this.ctx.lineTo(r, y+h-radius);
-  this.ctx.quadraticCurveTo(r, b, r-radius, b);
-  this.ctx.lineTo(x+radius, b);
-  this.ctx.quadraticCurveTo(x, b, x, b-radius);
-  this.ctx.lineTo(x, y+radius);
-  this.ctx.quadraticCurveTo(x, y, x+radius, y);
-  this.ctx.fill();
-  this.ctx.stroke();
-
-  this.ctx.strokeStyle="#aa0000";
-  this.ctx.lineWidth = "1";
-  /*this.ctx.fillRect(x, y, w, h);
-  this.ctx.strokeRect(x, y, w, h);
-
-  this.ctx.font = "15px Ubuntu"
-  this.ctx.textBaseline = "middle";
-  this.ctx.fillStyle = "black";
-  var text = "Jose: Hi ther";
-
-  var textX = x + w / 2 - this.ctx.measureText(text).width / 2;
-  var textY = y + h / 2;
-  this.ctx.fillText(text, textX, textY);
-
-*/
-  /*var x = 10;
-  var y = 60;
-  var w = 220;
-  var h = 90;
-  var radius = 10;
-  var r = x + w;
-  var b = y + h;
-
-  this.ctx.beginPath();
-  this.ctx.strokeStyle="white";
-  this.ctx.lineWidth="1";
-  this.ctx.moveTo(x+radius, y);
-  //this.ctx.lineTo(x+radius/2, y-10);
-  this.ctx.lineTo(x+radius * 2, y);
-  this.ctx.lineTo(r-radius, y);
-  this.ctx.quadraticCurveTo(r, y, r, y+radius);
-  this.ctx.lineTo(r, y+h-radius);
-  this.ctx.quadraticCurveTo(r, b, r-radius, b);
-  this.ctx.lineTo(x+radius, b);
-  this.ctx.quadraticCurveTo(x, b, x, b-radius);
-  this.ctx.lineTo(x, y+radius);
-  this.ctx.quadraticCurveTo(x, y, x+radius, y);
-  this.ctx.stroke();*/
-}
 Game.update = function (delta) {
     // handle camera movement with arrow keys
     var dirx = 0;
@@ -487,6 +418,14 @@ Game.update = function (delta) {
       this.chats[i].move(delta);
     }
 };
+Game.onResize = function() {
+  this.ctx.canvas.width = window.innerWidth;
+  this.ctx.canvas.height = window.innerHeight;
+  if (this.camera != undefined)
+  {
+    this.camera.reset();
+  }
+}
 
 Game.render = function () {
   this._drawIsometricWalls();
@@ -513,6 +452,10 @@ Game.doLogin = function() {
 }
 
 Game.requestChat = function(chat) {
+  if (chat.length < 1)
+  {
+    return;
+  }
   var message = new ClientMessage(9);
   message.appendString(chat);
   this.connection.sendMessage(message);
@@ -608,7 +551,7 @@ Game.handleChat = function(request) {
     {
       var mapX = this.camera.x;
       var mapPositionX = (Game.players[i].x - Game.players[i].y) * Map.TILE_H + mapX;
-      Game.chats.push(new Chat(from, text, mapPositionX);
+      Game.chats.push(new Chat(from, text, mapPositionX));
     }
   }
 }
@@ -641,4 +584,11 @@ Game.handleClosedConnection = function() {
 function onButtonPressed()
 {
 
+}
+
+function onChatSubmit()
+{
+  var chat_text = document.getElementById("input_chat").value;
+  document.getElementById("input_chat").value = "";
+  Game.requestChat(chat_text);
 }
