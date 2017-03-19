@@ -67,7 +67,7 @@ ServerMessage = function(data)
   this.popString = function() {
     var tickets = self.popInt();
     var totalString = self.popToken();
-    for (i = 0; i < tickets; i++)
+    for (var i = 0; i < tickets; i++)
     {
       totalString += '|' + self.popToken();
     }
@@ -93,7 +93,7 @@ ClientMessage = function(id) {
 
   this.appendString = function(str) {
     var tickets = 0;
-    for (i = 0; i < str.length; i++)
+    for (var i = 0; i < str.length; i++)
     {
       if (str.charAt(i) == '|')
       {

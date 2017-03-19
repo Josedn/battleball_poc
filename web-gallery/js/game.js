@@ -1,9 +1,10 @@
 /* PLAYER */
-function Player(id, x, y, image)
+function Player(id, x, y, rot, image)
 {
   this.id = id;
   this.x = x;
   this.y = y;
+  this.rot = rot;
   this.image = image;
   this.targetX = x;
   this.targetY = y;
@@ -95,8 +96,26 @@ Game.load = function () {
         Loader.loadImage('empty_tile', './web-gallery/assets/empty_tile.png'),
         Loader.loadImage('shadow_tile', './web-gallery/assets/shadow_tile.png'),
         Loader.loadImage('selected_tile', './web-gallery/assets/selected_tile.png'),
-        Loader.loadImage('jose', './web-gallery/assets/jose.png'),
-        Loader.loadImage('press', './web-gallery/assets/press.png')
+        Loader.loadImage('rf', './web-gallery/assets/jose/rf.png'),
+        Loader.loadImage('lf', './web-gallery/assets/jose/lf.png'),
+        Loader.loadImage('rb', './web-gallery/assets/jose/rb.png'),
+        Loader.loadImage('lb', './web-gallery/assets/jose/lb.png'),
+        Loader.loadImage('rfw1', './web-gallery/assets/jose/rfw1.png'),
+        Loader.loadImage('rfw2', './web-gallery/assets/jose/rfw2.png'),
+        Loader.loadImage('rfw3', './web-gallery/assets/jose/rfw3.png'),
+        Loader.loadImage('rfw4', './web-gallery/assets/jose/rfw4.png'),
+        Loader.loadImage('lfw1', './web-gallery/assets/jose/lfw1.png'),
+        Loader.loadImage('lfw2', './web-gallery/assets/jose/lfw2.png'),
+        Loader.loadImage('lfw3', './web-gallery/assets/jose/lfw3.png'),
+        Loader.loadImage('lfw4', './web-gallery/assets/jose/lfw4.png'),
+        Loader.loadImage('rbw1', './web-gallery/assets/jose/rbw1.png'),
+        Loader.loadImage('rbw2', './web-gallery/assets/jose/rbw2.png'),
+        Loader.loadImage('rbw3', './web-gallery/assets/jose/rbw3.png'),
+        Loader.loadImage('rbw4', './web-gallery/assets/jose/rbw4.png'),
+        Loader.loadImage('lbw1', './web-gallery/assets/jose/lbw1.png'),
+        Loader.loadImage('lbw2', './web-gallery/assets/jose/lbw2.png'),
+        Loader.loadImage('lbw3', './web-gallery/assets/jose/lbw3.png'),
+        Loader.loadImage('lbw4', './web-gallery/assets/jose/lbw4.png')
     ];
 };
 
@@ -155,8 +174,60 @@ Game._drawIsometricPlayer = function (player) {
   var mapPositionX = (player.x - player.y) * Map.TILE_H + mapX;
   var mapPositionY = (player.x + player.y) * Map.TILE_H / 2 + mapY;
 
+  var diffX = Math.abs(player.targetX - player.x);
+  var diffY = Math.abs(player.targetY - player.y);
+
+  var image = 'rf';
+
+  if (player.rot == 0)
+  {
+    image = 'rb';
+  }
+  if (player.rot == 6)
+  {
+    image = 'lb';
+  }
+  if (player.rot == 4)
+  {
+    image = 'lf';
+  }
+
+  if (diffX > 0 && diffX < 0.25)
+  {
+    image += ('w1');
+  }
+  else if (diffX > 0.25 && diffX < 0.5)
+  {
+    image += ('w2');
+  }
+  else if (diffX > 0.5 && diffX < 0.75)
+  {
+    image += ('w3');
+  }
+  else if (diffX > 0.75)
+  {
+    image += ('w4');
+  }
+
+  if (diffY > 0 && diffY < 0.25)
+  {
+    image += ('w1');
+  }
+  else if (diffY > 0.25 && diffY < 0.5)
+  {
+    image += ('w2');
+  }
+  else if (diffY > 0.5 && diffY < 0.75)
+  {
+    image += ('w3');
+  }
+  else if (diffY > 0.75)
+  {
+    image += ('w4');
+  }
+
   this.ctx.drawImage(this.shadowTile, mapPositionX, mapPositionY);
-  this.ctx.drawImage(player.image, mapPositionX, mapPositionY - 85);
+  this.ctx.drawImage(Loader.getImage(image), mapPositionX, mapPositionY - 85);
 }
 Game._drawIsometricLayer = function (layer) {
   if (Game.camera == undefined)
@@ -306,17 +377,6 @@ Game.update = function (delta) {
 };
 
 Game.render = function () {
-    /*// draw Game.map background layer
-    this._drawLayer(0);
-    // draw game sprites
-    for (var i = 0; i < this.players.length; i++)
-    {
-      this._drawPlayer(this.players[i]);
-    }
-    // draw Game.map top layer
-    this._drawLayer(1);
-
-    this._drawSelectedTile();*/
     this._drawIsometricLayer();
     this._drawIsometricSelectedTile();
     for (var i = 0; i < this.players.length; i++)
@@ -333,7 +393,7 @@ function getRandomInt(min, max) {
 Game.doLogin = function() {
   var message = new ClientMessage(1);
   message.appendString("Jose");
-  message.appendString("press");
+  message.appendString("jose");
   this.connection.sendMessage(message);
 }
 
@@ -373,6 +433,7 @@ Game.handleMovement = function(request) {
   var userId = request.popInt();
   var x = request.popInt();
   var y = request.popInt();
+  var rot = request.popInt();
 
   for (var i = 0; i < Game.players.length; i++)
   {
@@ -380,6 +441,7 @@ Game.handleMovement = function(request) {
     {
       Game.players[i].targetX = x;
       Game.players[i].targetY = y;
+      Game.players[i].rot = rot;
     }
   }
 
@@ -393,7 +455,7 @@ Game.handlePlayers = function(request) {
 
   for (var i = 0; i < count; i++)
   {
-    this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(),  Loader.getImage(request.popString())) );
+    this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(), request.popInt(),  Loader.getImage(request.popString())) );
   }
 }
 
@@ -413,7 +475,7 @@ Game.handleMap = function(request) {
   for (var i = 0; i < layerCount; i++)
   {
     var layer = [];
-    for (j = 0; j < width * height; j++)
+    for (var j = 0; j < width * height; j++)
     {
       layer.push(request.popInt());
     }
