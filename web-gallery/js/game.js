@@ -1,4 +1,4 @@
-function Chat(from, text, x)
+function Chat(from, text, x, player)
 {
   this.from = from;
   this.text = text;
@@ -6,6 +6,7 @@ function Chat(from, text, x)
   this.y = 170;
   this.targetX = x;
   this.targetY = this.y;
+  this.player = player;
   this.stamp = new Date().getTime();
 }
 Chat.SPEED = 32;
@@ -52,30 +53,42 @@ function Player(id, x, y, rot, look)
   this.targetY = y;
   this.sprites = {};
 }
-Player.prototype.getSpriteURL = function(direction, walkFrame)
+Player.prototype.getSpriteURL = function(direction, walkFrame, smallSize)
 {
   var spritesURL = "https://www.habbo.com/habbo-imaging/avatarimage?figure=" + this.look;
   spritesURL += '&direction=' + direction + '&head_direction=' + direction;
-
+  if (smallSize === true)
+  {
+    spritesURL += '&size=s';
+  }
   if (walkFrame > 0)
   {
     spritesURL += '&action=wlk&frame=' + (walkFrame-1);
   }
   return spritesURL;
 }
-Player.prototype.loadSprite = function(direction, walkFrame)
+Player.prototype.loadSprite = function(spriteURL)
 {
   var img = new Image();
-  img.src = this.getSpriteURL(direction, walkFrame);
-  this.sprites[img.src] = img;
+  img.src = spriteURL;
+  this.sprites[spriteURL] = img;
   return img;
 }
 Player.prototype.getSprite = function(direction, walkFrame)
 {
-  var sprite = this.getSpriteURL(direction, walkFrame);
+  var sprite = this.getSpriteURL(direction, walkFrame, false);
   if (this.sprites[sprite] == undefined)
   {
-    return this.loadSprite(direction, walkFrame);
+    return this.loadSprite(sprite);
+  }
+  return this.sprites[sprite];
+}
+Player.prototype.getChatSprite = function()
+{
+  var sprite = this.getSpriteURL(2, 0, true);
+  if (this.sprites[sprite] == undefined)
+  {
+    return this.loadSprite(sprite);
   }
   return this.sprites[sprite];
 }
@@ -373,6 +386,7 @@ Game._drawChats = function() {
     var rightChat = Loader.getImage('chat3');
 
     this.ctx.drawImage(leftChat, currentChat.x, currentChat.y);
+    this.ctx.drawImage(currentChat.player.getChatSprite(), 0, 0, 33, 33, currentChat.x, currentChat.y -10, 33, 33);
     while (currentWidth < (textWidth + fromWidth)) {
       this.ctx.drawImage(midChat, currentChat.x + leftChat.width + currentWidth, currentChat.y);
       currentWidth += 10;
@@ -432,10 +446,10 @@ Game.render = function () {
 };
 /* Requests */
 
-Game.doLogin = function() {
+Game.doLogin = function(username, look) {
   var message = new ClientMessage(1);
-  message.appendString("Jose");
-  message.appendString("hd-190-10.lg-3023-1408.ch-215-91.hr-893-45");
+  message.appendString(username);
+  message.appendString(look);
   this.connection.sendMessage(message);
 }
 
@@ -539,7 +553,7 @@ Game.handleChat = function(request) {
     {
       var mapX = this.camera.x;
       var mapPositionX = (Game.players[i].x - Game.players[i].y) * Map.TILE_H + mapX;
-      Game.chats.push(new Chat(from, text, mapPositionX));
+      Game.chats.push(new Chat(from, text, mapPositionX, Game.players[i]));
     }
   }
 }
@@ -547,31 +561,66 @@ Game.handleChat = function(request) {
 Game.handleLoggedIn = function() {
   console.log("I'm logged!");
 
+  var main_wrapper = document.getElementById("main_wrapper");
+  main_wrapper.style.display = 'none';
+
+  var chat_container = document.getElementById("chat_container");
+  chat_container.style.display = 'block';
+
   Game.requestMap();
 }
 
 /* IO */
 Game.initIO = function() {
   this.connection = new Connection(this);
+  updateStatus("Connecting to server...");
 }
 
 Game.handleConnectionError = function() {
   console.log("Connection fail");
+  updateStatus("Can't connect to server :'(");
 }
 
 Game.handleOpenConnection = function() {
   console.log("Connection is open");
-  this.doLogin();
+  updateStatus("Connected to server!");
 }
 
 Game.handleClosedConnection = function() {
   console.log("Connection is closed");
+  updateStatus("Lost connection!")
 
+  var main_wrapper = document.getElementById("main_wrapper");
+  main_wrapper.style.display = 'block';
+
+  var chat_container = document.getElementById("chat_container");
+  chat_container.style.display = 'none';
 }
 
-function onButtonPressed()
+function updateStatus(status)
 {
+  var stat_div = document.getElementById("status");
+  stat_div.innerHTML = status;
+}
 
+function onLogin()
+{
+  var username = document.getElementById("input_username").value;
+
+  var looks = document.getElementsByName('look');
+  var look;
+  for(var i = 0; i < looks.length; i++){
+    if(looks[i].checked){
+        look = looks[i].value;
+    }
+  }
+  if (Game.connection.connected) {
+    Game.doLogin(username, look);
+    updateStatus("Joining server...");
+  }
+  else {
+    updateStatus("Can't join to server!!");
+  }
 }
 
 function onChatSubmit()

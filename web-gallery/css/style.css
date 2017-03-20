@@ -45,20 +45,41 @@ canvas
   height: 100%;
   background-color: #000000;
 }
-.main-wrapper
+#main_wrapper
 {
-  background-color: red;
+  position: absolute;
+  top: 150px;
   width: 100%;
+  text-align: center;
+}
+.box, .invisible_box
+{
+  color: #ffffff;
+  font-family: inherit;
+  box-sizing: border-box;
+	background-color: #404040;
+	width: 600px;
+	border: 1px solid #efefef;
+  padding: 20px;
+	border-radius: 5px;
+  text-align: center;
   margin: 0 auto;
 }
-.chat_container
+.invisible_box
 {
+  background: inherit;
+  border: none;
+  color: #aaaaaa;
+}
+#chat_container
+{
+  display: none;
   position: absolute;
   bottom: 40px;
   width: 100%;
   text-align: center;
 }
-input
+input[type="text"]
 {
   color: #ffffff;
   font-family: inherit;
@@ -72,8 +93,19 @@ input
 }
 input[type="submit"]
 {
+  font-family: inherit;
+  box-sizing: border-box;
+  background-color: #5b5b5b;
+  height: 35px;
+  padding: 0 8px 0 8px;
+  border: 1px solid #2d6c48;
+  border-radius: 5px;
+
   width: 80px;
 	color: #ffffff;
 	background-color: #27ae60;
-	border-color: #2d6c48;
+}
+.offline
+{
+
 }
