@@ -26,7 +26,6 @@ Chat.prototype.move = function(delta){
       this.y = this.targetY;
     }
   }
-
   if (this.targetY < -10)
   {
     Game.chats.splice(0, 1);
@@ -51,8 +50,35 @@ function Player(id, x, y, rot, look)
   this.look = look;
   this.targetX = x;
   this.targetY = y;
+  this.sprites = {};
 }
+Player.prototype.getSpriteURL = function(direction, walkFrame)
+{
+  var spritesURL = "https://www.habbo.com/habbo-imaging/avatarimage?figure=" + this.look;
+  spritesURL += '&direction=' + direction + '&head_direction=' + direction;
 
+  if (walkFrame > 0)
+  {
+    spritesURL += '&action=wlk&frame=' + (walkFrame-1);
+  }
+  return spritesURL;
+}
+Player.prototype.loadSprite = function(direction, walkFrame)
+{
+  var img = new Image();
+  img.src = this.getSpriteURL(direction, walkFrame);
+  this.sprites[img.src] = img;
+  return img;
+}
+Player.prototype.getSprite = function(direction, walkFrame)
+{
+  var sprite = this.getSpriteURL(direction, walkFrame);
+  if (this.sprites[sprite] == undefined)
+  {
+    return this.loadSprite(direction, walkFrame);
+  }
+  return this.sprites[sprite];
+}
 Player.SPEED = 2; //squares per second
 
 Player.prototype.move = function (delta) {
@@ -149,27 +175,7 @@ Game.load = function () {
         Loader.loadImage('room_wall_r', './web-gallery/assets/room_wall_r.png'),
         Loader.loadImage('chat1', './web-gallery/assets/chat1.png'),
         Loader.loadImage('chat2', './web-gallery/assets/chat2.png'),
-        Loader.loadImage('chat3', './web-gallery/assets/chat3.png'),
-        Loader.loadImage('rf', './web-gallery/assets/jose/rf.png'),
-        Loader.loadImage('lf', './web-gallery/assets/jose/lf.png'),
-        Loader.loadImage('rb', './web-gallery/assets/jose/rb.png'),
-        Loader.loadImage('lb', './web-gallery/assets/jose/lb.png'),
-        Loader.loadImage('rfw1', './web-gallery/assets/jose/rfw1.png'),
-        Loader.loadImage('rfw2', './web-gallery/assets/jose/rfw2.png'),
-        Loader.loadImage('rfw3', './web-gallery/assets/jose/rfw3.png'),
-        Loader.loadImage('rfw4', './web-gallery/assets/jose/rfw4.png'),
-        Loader.loadImage('lfw1', './web-gallery/assets/jose/lfw1.png'),
-        Loader.loadImage('lfw2', './web-gallery/assets/jose/lfw2.png'),
-        Loader.loadImage('lfw3', './web-gallery/assets/jose/lfw3.png'),
-        Loader.loadImage('lfw4', './web-gallery/assets/jose/lfw4.png'),
-        Loader.loadImage('rbw1', './web-gallery/assets/jose/rbw1.png'),
-        Loader.loadImage('rbw2', './web-gallery/assets/jose/rbw2.png'),
-        Loader.loadImage('rbw3', './web-gallery/assets/jose/rbw3.png'),
-        Loader.loadImage('rbw4', './web-gallery/assets/jose/rbw4.png'),
-        Loader.loadImage('lbw1', './web-gallery/assets/jose/lbw1.png'),
-        Loader.loadImage('lbw2', './web-gallery/assets/jose/lbw2.png'),
-        Loader.loadImage('lbw3', './web-gallery/assets/jose/lbw3.png'),
-        Loader.loadImage('lbw4', './web-gallery/assets/jose/lbw4.png')
+        Loader.loadImage('chat3', './web-gallery/assets/chat3.png')
     ];
 };
 
@@ -247,56 +253,42 @@ Game._drawIsometricPlayer = function (player) {
   var diffX = Math.abs(player.targetX - player.x);
   var diffY = Math.abs(player.targetY - player.y);
 
-  var image = 'rf';
-
-  if (player.rot == 0)
-  {
-    image = 'rb';
-  }
-  if (player.rot == 6)
-  {
-    image = 'lb';
-  }
-  if (player.rot == 4)
-  {
-    image = 'lf';
-  }
-
+  var walkFrame = 0;
   if (diffX > 0 && diffX < 0.25)
   {
-    image += ('w1');
+    walkFrame = 1;
   }
   else if (diffX > 0.25 && diffX < 0.5)
   {
-    image += ('w2');
+    walkFrame = 2;
   }
   else if (diffX > 0.5 && diffX < 0.75)
   {
-    image += ('w3');
+    walkFrame = 3;
   }
   else if (diffX > 0.75)
   {
-    image += ('w4');
+    walkFrame = 4;
   }
   else if (diffY > 0 && diffY < 0.25)
   {
-    image += ('w1');
+    walkFrame = 1;
   }
   else if (diffY > 0.25 && diffY < 0.5)
   {
-    image += ('w2');
+    walkFrame = 2;
   }
   else if (diffY > 0.5 && diffY < 0.75)
   {
-    image += ('w3');
+    walkFrame = 3;
   }
   else if (diffY > 0.75)
   {
-    image += ('w4');
+    walkFrame = 4;
   }
 
   this.ctx.drawImage(this.shadowTile, mapPositionX, mapPositionY);
-  this.ctx.drawImage(Loader.getImage(image), mapPositionX, mapPositionY - 85);
+  this.ctx.drawImage(player.getSprite(player.rot, walkFrame), mapPositionX, mapPositionY - 85);
 }
 Game._drawIsometricWalls = function () {
   if (Game.camera == undefined)
@@ -438,16 +430,12 @@ Game.render = function () {
 
   this._drawChats();
 };
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 /* Requests */
 
 Game.doLogin = function() {
   var message = new ClientMessage(1);
   message.appendString("Jose");
-  message.appendString("jose");
+  message.appendString("hd-190-10.lg-3023-1408.ch-215-91.hr-893-45");
   this.connection.sendMessage(message);
 }
 
@@ -522,7 +510,7 @@ Game.handlePlayers = function(request) {
 
   for (var i = 0; i < count; i++)
   {
-    this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(), request.popInt(),  Loader.getImage(request.popString())) );
+    this.players.push( new Player(request.popInt(), request.popInt(), request.popInt(), request.popInt(),  request.popString()) );
   }
 }
 
