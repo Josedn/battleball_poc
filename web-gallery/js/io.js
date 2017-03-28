@@ -4,7 +4,7 @@ Connection = function(messageHandler) {
   var wsImpl = window.WebSocket || window.MozWebSocket;
   console.log("Connecting to server...");
   // create a new websocket and connect
-  this.ws = new wsImpl('ws://192.168.1.111:8181/');
+  this.ws = new wsImpl('ws://127.0.0.1:8181/');
 
   // when data is comming from the server, this metod is called
   this.ws.onmessage = function (evt) {
